@@ -8,61 +8,45 @@ app.use(express.json());
 let totalExecute = 0;
 let moonServers = new Map(); 
 
-// Tự động nhận diện tên Sea để hiển thị trên dữ liệu JSON cho đẹp
-function getSeaName(placeId) {
-    const id = String(placeId);
-    if (id === "2753915549") return "Full Moon Sea 1";
-    if (id === "4442272183") return "Full Moon Sea 2";
-    if (id === "7449423635") return "Full Moon Sea 3";
-    return `Full Moon (Place: ${id})`;
-}
+// Mã PlaceId của Sea 3
+const SEA_3_PLACE_ID = "7449423635";
 
-// Hàm đánh giá mức độ ưu tiên để sắp xếp (Sea 3 > Sea 2 > Sea 1)
-function getSeaPriority(placeId) {
-    const id = String(placeId);
-    if (id === "7449423635") return 3; // Sea 3 ưu tiên cao nhất (Lên đầu)
-    if (id === "4442272183") return 2; // Sea 2 ưu tiên nhì (Ở giữa)
-    if (id === "2753915549") return 1; // Sea 1 ưu tiên thấp nhất (Ở cuối)
-    return 0; // Các map khác vứt xuống dưới cùng
-}
-
-// 1. Cổng tiếp nhận dữ liệu từ tất cả các Sea gửi lên
+// 1. Cổng tiếp nhận dữ liệu (CHỈ NHẬN SEA 3)
 app.post('/update-moon', (req, res) => {
-    console.log("➡️ [Web] Nhận yêu cầu POST từ Roblox:", req.body);
-
     const { jobid, players, placeId } = req.body;
     
     if (!jobid) {
-        console.log("❌ [Lỗi Web] Từ chối do thiếu JobId");
         return res.status(400).send("Thiếu JobId");
+    }
+
+    // Bộ lọc: Nếu không phải Sea 3 thì bỏ qua luôn
+    if (String(placeId) !== SEA_3_PLACE_ID) {
+        console.log(`⚠️ [Web] Từ chối Server do không phải Sea 3 (Place: ${placeId})`);
+        return res.status(200).send("Bỏ qua vì không phải Sea 3");
     }
 
     totalExecute++; 
 
-    // Tự động đóng gói joinLink chuẩn từ Node.js để bắn về cho Lua
-    const joinLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobid}`;
+    // Ép ra lệnh Script Lua để copy paste hoặc fetch về xài luôn
+    const teleportCommand = `game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", "${jobid}")`;
 
-    // Nhận toàn bộ và lưu chuẩn cấu trúc cho script Auto Hop nhặt về mượt nhất
+    // Lưu dữ liệu
     moonServers.set(jobid, {
-        "placeId": Number(placeId) || 0,
+        "placeId": Number(placeId),
         "jobId": jobid,
         "players": Number(players) || 1,
-        "name": getSeaName(placeId),
-        "joinLink": joinLink, 
+        "name": "Full Moon Sea 3",
+        "teleportCommand": teleportCommand, // Nhả lệnh thẳng ra web
         "updatedAt": Date.now()
     });
 
-    console.log(`✅ [Web] Đã nạp thành công Server mới! JobId: ${jobid} | Sea: ${placeId}`);
-    res.status(200).send("Cập nhật thành công Server!");
+    console.log(`✅ [Web] Đã nạp Server Sea 3! JobId: ${jobid}`);
+    res.status(200).send("Cập nhật thành công Server Sea 3!");
 });
 
 // 2. Cổng dành riêng cho Script Lua lấy dữ liệu về để Auto Hop
 app.get('/api', (req, res) => {
     const moonDataArray = Array.from(moonServers.values());
-    
-    // Sắp xếp mảng: Trừ ưu tiên của b cho a để xếp hạng từ cao xuống thấp
-    moonDataArray.sort((a, b) => getSeaPriority(b.placeId) - getSeaPriority(a.placeId));
-    
     res.json(moonDataArray);
 });
 
@@ -77,17 +61,14 @@ setInterval(() => {
     }
 }, 60000); 
 
-// 3. Giao diện hiển thị gốc (Đã cập nhật hiển thị All Seas và Sắp xếp)
+// 3. Giao diện hiển thị gốc trên Web
 app.get('/', (req, res) => {
     const moonDataArray = Array.from(moonServers.values());
-    
-    // Sắp xếp mảng ngay cả trên giao diện web hiển thị
-    moonDataArray.sort((a, b) => getSeaPriority(b.placeId) - getSeaPriority(a.placeId));
     
     const finalData = {
         "Total Execute": totalExecute,
         "by": "tranduykhanh",
-        "sea_filter": "All Seas (Sorted: Sea 3 -> Sea 2 -> Sea 1)",
+        "sea_filter": "Only Sea 3 (7449423635)",
         "total_moon_servers": moonDataArray.length,
         "moon_data": moonDataArray
     };
@@ -98,7 +79,7 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Moon Server Tracker - All New</title>
+        <title>Moon Server Tracker - Sea 3 Only</title>
         <style>
             body {
                 background-color: #121212;
@@ -157,5 +138,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Web đang chạy tại port ${PORT} - Nhận mọi dữ liệu Server`);
+    console.log(`🚀 Web đang chạy tại port ${PORT} - CHỈ NHẬN DỮ LIỆU SEA 3`);
 });
+    
