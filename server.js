@@ -17,6 +17,15 @@ function getSeaName(placeId) {
     return `Full Moon (Place: ${id})`;
 }
 
+// Hàm đánh giá mức độ ưu tiên để sắp xếp (Sea 3 > Sea 2 > Sea 1)
+function getSeaPriority(placeId) {
+    const id = String(placeId);
+    if (id === "7449423635") return 3; // Sea 3 ưu tiên cao nhất (Lên đầu)
+    if (id === "4442272183") return 2; // Sea 2 ưu tiên nhì (Ở giữa)
+    if (id === "2753915549") return 1; // Sea 1 ưu tiên thấp nhất (Ở cuối)
+    return 0; // Các map khác vứt xuống dưới cùng
+}
+
 // 1. Cổng tiếp nhận dữ liệu từ tất cả các Sea gửi lên
 app.post('/update-moon', (req, res) => {
     console.log("➡️ [Web] Nhận yêu cầu POST từ Roblox:", req.body);
@@ -30,12 +39,16 @@ app.post('/update-moon', (req, res) => {
 
     totalExecute++; 
 
+    // Tự động đóng gói joinLink chuẩn từ Node.js để bắn về cho Lua
+    const joinLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobid}`;
+
     // Nhận toàn bộ và lưu chuẩn cấu trúc cho script Auto Hop nhặt về mượt nhất
     moonServers.set(jobid, {
         "placeId": Number(placeId) || 0,
         "jobId": jobid,
         "players": Number(players) || 1,
         "name": getSeaName(placeId),
+        "joinLink": joinLink, 
         "updatedAt": Date.now()
     });
 
@@ -46,6 +59,10 @@ app.post('/update-moon', (req, res) => {
 // 2. Cổng dành riêng cho Script Lua lấy dữ liệu về để Auto Hop
 app.get('/api', (req, res) => {
     const moonDataArray = Array.from(moonServers.values());
+    
+    // Sắp xếp mảng: Trừ ưu tiên của b cho a để xếp hạng từ cao xuống thấp
+    moonDataArray.sort((a, b) => getSeaPriority(b.placeId) - getSeaPriority(a.placeId));
+    
     res.json(moonDataArray);
 });
 
@@ -60,14 +77,17 @@ setInterval(() => {
     }
 }, 60000); 
 
-// 3. Giao diện hiển thị gốc (Đã cập nhật hiển thị All Seas)
+// 3. Giao diện hiển thị gốc (Đã cập nhật hiển thị All Seas và Sắp xếp)
 app.get('/', (req, res) => {
     const moonDataArray = Array.from(moonServers.values());
+    
+    // Sắp xếp mảng ngay cả trên giao diện web hiển thị
+    moonDataArray.sort((a, b) => getSeaPriority(b.placeId) - getSeaPriority(a.placeId));
     
     const finalData = {
         "Total Execute": totalExecute,
         "by": "tranduykhanh",
-        "sea_filter": "All Seas (No Filter)",
+        "sea_filter": "All Seas (Sorted: Sea 3 -> Sea 2 -> Sea 1)",
         "total_moon_servers": moonDataArray.length,
         "moon_data": moonDataArray
     };
