@@ -27,17 +27,22 @@ app.post('/update-moon', (req, res) => {
 
     totalExecute++; 
 
-    // Ép ra lệnh Script Lua để copy paste hoặc fetch về xài luôn
+    // Lệnh Script Lua
     const teleportCommand = `game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", "${jobid}")`;
+    
+    // Link JobId trực tiếp để mở game
+    const jobLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobid}`;
 
-    // Lưu dữ liệu
+    // Lưu dữ liệu theo đúng thứ tự yêu cầu: Link JobId -> Số người chơi -> Số người chạy Script
     moonServers.set(jobid, {
-        "placeId": Number(placeId),
-        "jobId": jobid,
-        "players": Number(players) || 1,
-        "name": "Full Moon Sea 3",
-        "teleportCommand": teleportCommand, // Nhả lệnh thẳng ra web
-        "updatedAt": Date.now()
+        "JobId_Link": jobLink,
+        "Players": Number(players) || 1,
+        "Script_Runners": totalExecute,
+        "JobId_Raw": jobid,
+        "PlaceId": Number(placeId),
+        "Name": "Full Moon Sea 3",
+        "Teleport_Command": teleportCommand,
+        "UpdatedAt": Date.now()
     });
 
     console.log(`✅ [Web] Đã nạp Server Sea 3! JobId: ${jobid}`);
@@ -50,12 +55,12 @@ app.get('/api', (req, res) => {
     res.json(moonDataArray);
 });
 
-// Cơ chế tự động xóa server khỏi danh sách sau 15 phút (Quét dọn mỗi 1 phút)
+// Cơ chế tự động xóa server khỏi danh sách sau 6 phút (Quét dọn mỗi 1 phút)
 setInterval(() => {
     const now = Date.now();
     for (let [jobid, data] of moonServers.entries()) {
-        if (now - data.updatedAt > 15 * 60 * 1000) { 
-            console.log(`🧹 [Web] Hết thời gian, xóa Server cũ: ${jobid}`);
+        if (now - data.UpdatedAt > 6 * 60 * 1000) { 
+            console.log(`🧹 [Web] Hết thời gian (6 phút), xóa Server cũ: ${jobid}`);
             moonServers.delete(jobid);
         }
     }
@@ -66,11 +71,11 @@ app.get('/', (req, res) => {
     const moonDataArray = Array.from(moonServers.values());
     
     const finalData = {
-        "Total Execute": totalExecute,
-        "by": "tranduykhanh",
-        "sea_filter": "Only Sea 3 (7449423635)",
-        "total_moon_servers": moonDataArray.length,
-        "moon_data": moonDataArray
+        "Total_Execute_Global": totalExecute,
+        "By": "tranduykhanh",
+        "Sea_Filter": "Only Sea 3 (7449423635)",
+        "Total_Moon_Servers": moonDataArray.length,
+        "Moon_Data": moonDataArray
     };
 
     res.send(`
@@ -140,4 +145,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Web đang chạy tại port ${PORT} - CHỈ NHẬN DỮ LIỆU SEA 3`);
 });
-    
+
