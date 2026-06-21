@@ -27,21 +27,17 @@ app.post('/update-moon', (req, res) => {
 
     totalExecute++; 
 
-    // Lệnh Script Lua
-    const teleportCommand = `game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", "${jobid}")`;
-    
-    // Link JobId trực tiếp để mở game
-    const jobLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobid}`;
+    -- Cấu trúc đường dẫn mở thẳng app Roblox để vào đúng Server Blox Fruits Sea 3
+    const bloxFruitsJoinLink = `roblox://experiences/start?placeId=${SEA_3_PLACE_ID}&gameInstanceId=${jobid}`;
 
-    // Lưu dữ liệu theo đúng thứ tự yêu cầu: Link JobId -> Số người chơi -> Số người chạy Script
+    // Lưu dữ liệu theo thứ tự: Link Join Game -> Số người chơi -> Số người chạy Script (Đã xóa Teleport_Command)
     moonServers.set(jobid, {
-        "JobId_Link": jobLink,
+        "Blox_Fruits_Join_Link": bloxFruitsJoinLink,
         "Players": Number(players) || 1,
         "Script_Runners": totalExecute,
         "JobId_Raw": jobid,
         "PlaceId": Number(placeId),
         "Name": "Full Moon Sea 3",
-        "Teleport_Command": teleportCommand,
         "UpdatedAt": Date.now()
     });
 
@@ -145,4 +141,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Web đang chạy tại port ${PORT} - CHỈ NHẬN DỮ LIỆU SEA 3`);
 });
-
